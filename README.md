@@ -16,9 +16,10 @@ The main page in this app is a simple input bar where you manually add a contrac
 
 ## Current Limitations
 
-- **Solana-Only Support**: Currently only supports Solana tokens due to:
+- **Solana-Only Buy/Sell Support**: Currently only supports buy/sell Solana tokens due to:
   - Token data API integration specifically for Solana (via Moralis)
   - Universal Account configuration targeting Solana mainnet
+  - The user can still trade using the fully universal balance from any supported chain.
 
 ## Prerequisites
 
