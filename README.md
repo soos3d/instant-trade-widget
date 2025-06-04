@@ -62,6 +62,52 @@ The main page in this app is a simple input bar where you manually add a contrac
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+## How to Use the Widget
+
+The widget is designed to be easily integrated into any React application. In the demo app, it's used in the main page (`app/page.tsx`) as follows:
+
+```tsx
+// Import the widget component
+import UniversalAccountsWidget from "./components/Widget";
+
+export default function Home() {
+  const [tokenAddress, setTokenAddress] = useState(
+    "2nM6WQAUf4Jdmyd4kcSr8AURFoSDe9zsmRXJkFoKpump" // Default token address
+  );
+  
+  // Form handling for token address input
+  const [inputValue, setInputValue] = useState("");
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputValue.trim()) {
+      setTokenAddress(inputValue.trim());
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4">
+      <div className="max-w-lg mx-auto pt-20">
+        {/* Page header and token input form */}
+        
+        {/* The widget component */}
+        <UniversalAccountsWidget
+          projectId={process.env.NEXT_PUBLIC_UA_PROJECT_ID}
+          title="Universal Swap"
+          tokenAddress={tokenAddress}
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+The widget accepts the following props:
+- `projectId`: Your Particle Network Universal Accounts project ID
+- `title`: The title displayed at the top of the widget
+- `tokenAddress`: The address of the token to be traded
+
+You can integrate this widget into any page of your application where you want to offer token trading functionality.
+
 ## Adding Support for Other Chains
 
 To extend this widget to support other blockchain networks, you'll need to implement chain detection logic in the BuyTabContent component. The transaction preview and execution are both handled in this component, making it the central place for adding multi-chain support.
