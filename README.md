@@ -6,6 +6,8 @@ This widget is meant to be used as a component in a larger application, and it p
 
 The main page in this app is a simple input bar where you manually add a contract address, the widget will fetch the token data and allow the user to instantly trade, the idea is to place it within a token's info page, so you can use the token address as a prop.
 
+> 🎥 Find a quick video overview in this [Tweet](https://x.com/web3Dav3/status/1930376411816030307).
+
 ## Features
 
 - **Universal Account Integration**: Wallet connection via Particle Connect and transaction handling through Universal Accounts
