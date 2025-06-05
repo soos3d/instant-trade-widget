@@ -9,17 +9,7 @@ import {
 } from "@particle-network/universal-account-sdk";
 import type { WalletClient } from "viem";
 import { AccountInfo } from "../../../lib/types";
-
-interface TokenBalance {
-  associatedTokenAddress: string;
-  mint: string;
-  amountRaw: string;
-  amount: string;
-  decimals: number;
-  name: string;
-  symbol: string;
-  logo: string;
-}
+import { useTokenBalance } from "../../../hooks/useTokenBalance";
 
 interface SellTabContentProps {
   tokenAddress: string;
@@ -39,102 +29,21 @@ export function SellTabContent({
   onTransactionComplete,
 }: SellTabContentProps) {
   const [isSelling, setIsSelling] = useState(false);
-  const [selectedPercentage, setSelectedPercentage] = useState<number | null>(
-    null
-  );
+  const [selectedPercentage, setSelectedPercentage] = useState<number | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
-  const [tokenBalance, setTokenBalance] = useState<TokenBalance | null>(null);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
-  // Function to check token balance with retries
-  const checkTokenBalance = useCallback(async () => {
-    const MAX_RETRIES = 10;
-    const RETRY_INTERVAL = 1000; // 1 second
-    let retryCount = 0;
-    let shouldContinue = true;
+  // Use our new token balance hook
+  const { fetchTokenBalance, isLoading: isLoadingBalance, tokenBalance } = useTokenBalance();
 
-    const fetchTokenBalance = async () => {
-      if (!accountInfo?.solanaUaAddress || !tokenAddress || !shouldContinue)
-        return;
-
-      try {
-        console.log(
-          `Attempt ${retryCount + 1}/${MAX_RETRIES} - Fetching balance...`
-        );
-        const response = await fetch(
-          `/api/token/balance?address=${accountInfo.solanaUaAddress}`
-        );
-
-        if (response.ok) {
-          const tokens = await response.json();
-          console.log(
-            `Available tokens:`,
-            tokens.map((t: TokenBalance) => ({
-              symbol: t.symbol,
-              balance: t.amount,
-              mint: t.mint,
-            }))
-          );
-
-          const targetToken = tokens.find(
-            (token: TokenBalance) => token.mint === tokenAddress
-          );
-
-          if (targetToken) {
-            console.log("Found target token:", {
-              symbol: targetToken.symbol,
-              balance: targetToken.amount,
-              mint: targetToken.mint,
-              decimals: targetToken.decimals,
-            });
-            setTokenBalance(targetToken);
-            shouldContinue = false;
-          } else if (retryCount >= MAX_RETRIES - 1) {
-            console.log("Max retries reached, giving up");
-            setTokenBalance(null);
-            shouldContinue = false;
-          }
-        } else {
-          console.error("Failed to fetch token balance");
-          shouldContinue = false;
-        }
-      } catch (error) {
-        console.error("Error fetching token balance:", error);
-        shouldContinue = false;
-      } finally {
-        if (!shouldContinue) {
-          setIsLoadingBalance(false);
-        }
-        retryCount++;
-      }
-    };
-
-    setIsLoadingBalance(true);
-
-    // Start the retry interval
-    const retryInterval = setInterval(() => {
-      if (shouldContinue && retryCount < MAX_RETRIES) {
-        fetchTokenBalance();
-      } else {
-        clearInterval(retryInterval);
-      }
-    }, RETRY_INTERVAL);
-
-    // Initial fetch
-    await fetchTokenBalance();
-
-    // Return cleanup function
-    return retryInterval;
-  }, [accountInfo?.solanaUaAddress, tokenAddress]);
+  // Function to check token balance
+  const checkTokenBalance = useCallback(async (options?: { expectZero?: boolean; maxRetries?: number }) => {
+    await fetchTokenBalance(accountInfo?.solanaUaAddress, tokenAddress, options);
+  }, [fetchTokenBalance, accountInfo?.solanaUaAddress, tokenAddress]);
 
   // Initial balance check on mount
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    checkTokenBalance().then((id) => (intervalId = id));
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [accountInfo?.solanaUaAddress, tokenAddress, checkTokenBalance]);
+    checkTokenBalance();
+  }, [checkTokenBalance]);
 
   const handleSellToken = async (percentage: number) => {
     if (!universalAccount || !walletClient || !address) {
@@ -210,6 +119,17 @@ export function SellTabContent({
       // Transaction completed successfully
       console.log("Sell transaction completed successfully");
 
+      // Check if we sold 100% of the tokens - then we expect zero balance
+      if (percentage === 100) {
+        console.log("Sold 100% of tokens, polling for balance to update to zero...");
+        // Use a longer retry window for post-transaction polling (12 retries = ~12 seconds)
+        await checkTokenBalance({ expectZero: true, maxRetries: 12 });
+      } else {
+        // Otherwise, just update the balance normally
+        console.log(`Sold ${percentage}% of tokens, updating balance...`);
+        await checkTokenBalance();
+      }
+
       // Call the completion callback if provided
       if (onTransactionComplete) {
         onTransactionComplete();
@@ -240,10 +160,10 @@ export function SellTabContent({
               <div className="h-6 w-32 bg-gray-800 rounded animate-pulse"></div>
             ) : tokenBalance ? (
               <div className="text-white text-sm font-medium">
-                {tokenBalance.amount} {tokenBalance.symbol}
+                {tokenBalance.amount}
               </div>
             ) : (
-              <div className="text-gray-500 text-sm">No balance found</div>
+              <div className="text-gray-500 text-sm">0.0</div>
             )}
           </div>
           <Button

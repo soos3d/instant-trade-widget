@@ -44,6 +44,9 @@ The main page in this app is a simple input bar where you manually add a contrac
    ```
 
 3. Create a `.env.local` file with your API keys
+
+The Solana RPC is used to fetch the token balance.
+
    ```
     NEXT_PUBLIC_PROJECT_ID=""
     NEXT_PUBLIC_CLIENT_KEY=""
@@ -52,6 +55,7 @@ The main page in this app is a simple input bar where you manually add a contrac
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=""
     NEXT_PUBLIC_UA_PROJECT_ID=""
     MORALIS_API_KEY=""
+    SOLANA_RPC_URL=""
    ```
 
 4. Start the development server
